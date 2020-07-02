@@ -1,0 +1,37 @@
+image: docker:$DOCKER_VERSION
+
+build-docker-master-latest:
+  stage: deploy
+  services:
+    - docker:$DOCKER_DIND_VERSION
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - IMAGE_TAG_LATEST="$CI_REGISTRY_IMAGE:latest"
+    - IMAGE_TAG_COMMIT_SHA="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker build -t "$IMAGE_TAG_COMMIT_SHA" -t "$IMAGE_TAG_LATEST" .
+    - docker push "$IMAGE_TAG_COMMIT_SHA"
+    - docker push "$IMAGE_TAG_LATEST"
+  only:
+    - master
+
+build-docker-branch:
+  stage: deploy
+  services:
+    - docker:$DOCKER_DIND_VERSION
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - IMAGE_TAG="$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+    - docker build -t "$IMAGE_TAG" .
+    - docker push "$IMAGE_TAG"
+  except:
+    - master
+
